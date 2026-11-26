@@ -335,4 +335,637 @@
   <div id="cart-drawer" class="hidden fixed inset-0 z-50 bg-black/60 flex justify-end">
     <div class="bg-creme w-full max-w-lg h-full overflow-y-auto p-6 shadow-2xl flex flex-col justify-between">
       <div>
-        <div class="flex items-center justify-between pb-4 
+        <div class="flex items-center justify-between pb-4 border-b border-dourado/40">
+          <h3 class="font-serif text-2xl font-bold text-vinhoEscuro">Seu Pedido</h3>
+          <button onclick="toggleCart(false)" class="text-vinhoEscuro font-bold text-xl">✕</button>
+        </div>
+
+        <div id="cart-items-container" class="space-y-3 mt-4"></div>
+
+        <form id="checkout-form" onsubmit="submitOrder(event)" class="hidden space-y-4 mt-6">
+          <div>
+            <label class="block text-xs font-bold uppercase text-vinhoEscuro mb-1">Observações</label>
+            <textarea id="ord-notes" rows="2" placeholder="Ex: Sem cebola, talheres descartáveis..." class="w-full p-2.5 rounded-lg border border-dourado/50 bg-white text-sm"></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase text-vinhoEscuro mb-1">Nome *</label>
+              <input id="ord-name" required class="w-full p-2.5 rounded-lg border border-dourado/50 bg-white text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-vinhoEscuro mb-1">Telefone / WhatsApp *</label>
+              <input id="ord-phone" required class="w-full p-2.5 rounded-lg border border-dourado/50 bg-white text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-vinhoEscuro mb-1">Entrega ou Retirada</label>
+            <select id="ord-type" onchange="renderCart()" class="w-full p-2.5 rounded-lg border border-dourado/50 bg-white text-sm">
+              <option value="entrega">Entrega no Endereço</option>
+              <option value="retirada">Retirada no Local (Grátis)</option>
+            </select>
+          </div>
+
+          <div id="address-fields" class="space-y-2.5 p-4 rounded-xl bg-white border border-dourado/40">
+            <p class="text-xs font-bold uppercase text-vinho">Endereço de Entrega</p>
+            <div class="grid grid-cols-2 gap-2">
+              <input id="ord-cep" placeholder="CEP *" oninput="updateAddressPreview()" class="p-2 rounded border border-dourado/40 text-sm" />
+              <input id="ord-bairro" placeholder="Bairro *" oninput="updateAddressPreview()" class="p-2 rounded border border-dourado/40 text-sm" />
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <input id="ord-rua" placeholder="Rua *" oninput="updateAddressPreview()" class="col-span-2 p-2 rounded border border-dourado/40 text-sm" />
+              <input id="ord-num" placeholder="Número *" oninput="updateAddressPreview()" class="p-2 rounded border border-dourado/40 text-sm" />
+            </div>
+            <input id="ord-comp" placeholder="Complemento" oninput="updateAddressPreview()" class="w-full p-2 rounded border border-dourado/40 text-sm" />
+            <div id="address-preview" class="hidden text-xs bg-creme p-2.5 rounded border border-dourado/40 text-vinhoEscuro"></div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-vinhoEscuro mb-1">Forma de Pagamento</label>
+            <select id="ord-payment" class="w-full p-2.5 rounded-lg border border-dourado/50 bg-white text-sm">
+              <option value="PIX">PIX</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option id="opt-card" value="Cartão na entrega">Cartão na entrega</option>
+            </select>
+          </div>
+
+          <div id="cart-totals" class="p-4 rounded-xl bg-vinhoEscuro text-creme space-y-1.5 text-sm"></div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-dourado text-vinhoEscuro font-bold text-sm hover:bg-douradoClaro transition shadow-lg">
+            Confirmar Pedido
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LÓGICA DO SISTEMA (FIREBASE SDK) ==================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // INSIRA AS CREDENCIAIS DO SEU PROJETO FIREBASE AQUI:
+    const firebaseConfig = {
+      apiKey: "COLE_SUA_API_KEY",
+      authDomain: "COLE_SEU_AUTH_DOMAIN",
+      projectId: "COLE_SEU_PROJECT_ID",
+      storageBucket: "COLE_SEU_STORAGE_BUCKET",
+      messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID",
+      appId: "COLE_SEU_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const OWNER_EMAIL = 'oficialpou693@gmail.com';[span_1](start_span)[span_1](end_span)
+    const ORDER_STATUSES = [
+      'Pedido recebido', 'Pedido confirmado', 'Em preparação',
+      'Saiu para entrega', 'Pedido concluído', 'Pedido cancelado'
+    ];
+
+    let state = {
+      user: null,
+      isOwner: false,
+      categories: [],
+      products: [],
+      settings: { delivery_fee: 8, delivery_enabled: true, card_on_delivery_enabled: true, pix_key: OWNER_EMAIL },
+      section: 'cafe',
+      categoryId: 'all',
+      cart: [],
+      isRegister: false
+    };
+
+    // EXPOR FUNÇÕES GLOBAIS PARA O HTML
+    window.switchView = switchView;
+    window.handleAccountClick = handleAccountClick;
+    window.toggleAuthModal = toggleAuthModal;
+    window.toggleAuthMode = toggleAuthMode;
+    window.submitAuth = submitAuth;
+    window.logout = logout;
+    window.setSection = setSection;
+    window.setCategory = setCategory;
+    window.toggleCart = toggleCart;
+    window.addToCart = addToCart;
+    window.changeQty = changeQty;
+    window.updateAddressPreview = updateAddressPreview;
+    window.submitOrder = submitOrder;
+    window.setAdminTab = setAdminTab;
+    window.loadAdminData = loadAdminData;
+    window.adminUpdateOrder = adminUpdateOrder;
+    window.adminAddCategory = adminAddCategory;
+    window.adminAddProduct = adminAddProduct;
+    window.adminSaveProduct = adminSaveProduct;
+    window.adminDeleteProduct = adminDeleteProduct;
+    window.adminSaveSettings = adminSaveSettings;
+
+    // INICIALIZAÇÃO
+    onAuthStateChanged(auth, async (user) => {
+      state.user = user;
+      state.isOwner = user && user.email.toLowerCase() === OWNER_EMAIL;[span_2](start_span)[span_2](end_span)
+
+      if (state.isOwner) {
+        document.getElementById('btn-admin-nav').classList.remove('hidden');
+        document.getElementById('btn-admin-nav').classList.add('flex');
+      } else {
+        document.getElementById('btn-admin-nav').classList.add('hidden');
+      }
+
+      if (user) {
+        document.getElementById('btn-account-nav').textContent = 'Minha Conta';
+        document.getElementById('ord-name').value = user.displayName || '';
+      } else {
+        document.getElementById('btn-account-nav').textContent = 'Entrar';
+      }
+    });
+
+    async function init() {
+      await loadStoreData();
+      renderMenu();
+    }
+
+    async function loadStoreData() {
+      try {
+        const [catsSnap, prodsSnap, cfgSnap] = await Promise.all([
+          getDocs(collection(db, 'categories')),
+          getDocs(collection(db, 'products')),
+          getDoc(doc(db, 'store_settings', 'config'))
+        ]);
+
+        state.categories = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        state.products = prodsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (cfgSnap.exists()) {
+          state.settings = cfgSnap.data();
+          document.getElementById('footer-hours').textContent = state.settings.opening_hours;
+          document.getElementById('footer-address').textContent = state.settings.address;
+          document.getElementById('footer-whatsapp').textContent = 'WhatsApp: ' + state.settings.whatsapp;
+          document.getElementById('footer-instagram').textContent = 'Instagram: ' + state.settings.instagram;
+          if (!state.settings.card_on_delivery_enabled) {
+            const optCard = document.getElementById('opt-card');
+            if (optCard) optCard.remove();
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dados do Firestore:", err);
+      }
+    }
+
+    // NAVEGAÇÃO ENTRE TELAS
+    function switchView(view) {
+      document.getElementById('view-store').classList.add('hidden');
+      document.getElementById('view-customer').classList.add('hidden');
+      document.getElementById('view-admin').classList.add('hidden');
+
+      if (view === 'admin') {
+        if (!state.isOwner) return alert('Acesso negado: exclusivo para o proprietário autenticado.');
+        document.getElementById('view-admin').classList.remove('hidden');
+        loadAdminData();
+      } else if (view === 'customer') {
+        if (!state.user) return toggleAuthModal(true);
+        document.getElementById('view-customer').classList.remove('hidden');
+        loadCustomerData();
+      } else {
+        document.getElementById('view-store').classList.remove('hidden');
+      }
+      window.scrollTo(0, 0);
+    }
+
+    function handleAccountClick() {
+      if (!state.user) return toggleAuthModal(true);
+      switchView('customer');
+    }
+
+    // AUTENTICAÇÃO FIREBASE
+    function toggleAuthModal(show) {
+      document.getElementById('auth-modal').classList.toggle('hidden', !show);
+    }
+
+    function toggleAuthMode() {
+      state.isRegister = !state.isRegister;
+      document.getElementById('auth-title').textContent = state.isRegister ? 'Criar Conta' : 'Entrar na Conta';
+      document.getElementById('auth-name').classList.toggle('hidden', !state.isRegister);
+      document.getElementById('auth-toggle-text').textContent = state.isRegister
+        ? 'Já possui conta? Faça login'
+        : 'Não tem conta? Cadastre-se agora';
+    }
+
+    async function submitAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-pass').value;
+      const fullName = document.getElementById('auth-name').value.trim();
+
+      try {
+        if (state.isRegister) {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await addDoc(collection(db, 'profiles'), { uid: cred.user.uid, email, full_name: fullName, role: email.toLowerCase() === OWNER_EMAIL ? 'owner' : 'customer' });[span_3](start_span)[span_3](end_span)
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+        toggleAuthModal(false);
+        if (auth.currentUser?.email.toLowerCase() === OWNER_EMAIL) switchView('admin');[span_4](start_span)[span_4](end_span)
+        else switchView('customer');
+      } catch (err) {
+        alert('Erro de autenticação: ' + err.message);
+      }
+    }
+
+    async function logout() {
+      await signOut(auth);
+      switchView('store');
+    }
+
+    // CARDÁPIO
+    function setSection(sec) {
+      state.section = sec;
+      state.categoryId = 'all';
+      document.getElementById('tab-cafe').className = sec === 'cafe'
+        ? 'px-6 py-3 rounded-xl font-semibold text-sm transition border bg-vinho text-douradoClaro border-dourado shadow-md'
+        : 'px-6 py-3 rounded-xl font-semibold text-sm transition border bg-white text-vinhoEscuro border-dourado/40';
+      document.getElementById('tab-marmita').className = sec === 'marmita'
+        ? 'px-6 py-3 rounded-xl font-semibold text-sm transition border bg-vinho text-douradoClaro border-dourado shadow-md'
+        : 'px-6 py-3 rounded-xl font-semibold text-sm transition border bg-white text-vinhoEscuro border-dourado/40';
+      renderMenu();
+    }
+
+    function setCategory(catId) {
+      state.categoryId = catId;
+      renderMenu();
+    }
+
+    function renderMenu() {
+      const subCats = state.categories.filter(c => c.section === state.section);
+      const subBar = document.getElementById('subcategories-bar');
+      subBar.innerHTML = `<button onclick="setCategory('all')" class="px-4 py-1.5 rounded-full text-xs font-medium ${state.categoryId === 'all' ? 'bg-vinhoEscuro text-douradoClaro' : 'bg-vinho/10 text-vinhoEscuro'}">Todos</button>` +
+        subCats.map(c => `<button onclick="setCategory('${c.id}')" class="px-4 py-1.5 rounded-full text-xs font-medium ${state.categoryId === c.id ? 'bg-vinhoEscuro text-douradoClaro' : 'bg-vinho/10 text-vinhoEscuro'}">${c.name}</button>`).join('');
+
+      const filtered = state.products.filter(p => {
+        const cat = state.categories.find(c => c.id === p.category_id);
+        if (!cat || cat.section !== state.section) return false;
+        if (state.categoryId !== 'all' && p.category_id !== state.categoryId) return false;
+        return p.active !== false;
+      });
+
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl overflow-hidden border border-dourado/30 shadow-sm hover:shadow-xl transition flex flex-col">
+          <div class="h-52 overflow-hidden">
+            <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover hover:scale-105 transition duration-500" />
+          </div>
+          <div class="p-6 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 class="font-serif text-xl font-bold text-vinhoEscuro">${p.name}</h3>
+              <p class="text-sm text-vinhoEscuro/75 mt-2 leading-relaxed">${p.description}</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-dourado/20 flex items-center justify-between">
+              <span class="text-lg font-bold text-vinho">R$ ${Number(p.price).toFixed(2).replace('.', ',')}</span>
+              <button onclick="addToCart('${p.id}')" class="px-4 py-2 rounded-lg bg-vinho text-creme text-xs font-semibold border border-dourado hover:bg-vinhoEscuro transition">
+                + Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // CARRINHO E CHECKOUT
+    function toggleCart(open) {
+      document.getElementById('cart-drawer').classList.toggle('hidden', !open);
+      if (open) renderCart();
+    }
+
+    function addToCart(productId) {
+      const prod = state.products.find(p => p.id === productId);
+      if (!prod) return;
+      const item = state.cart.find(i => i.product.id === productId);
+      if (item) item.qty++;
+      else state.cart.push({ product: prod, qty: 1 });
+      updateCartBadge();
+    }
+
+    function changeQty(productId, delta) {
+      state.cart = state.cart.map(i => i.product.id === productId ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0);
+      updateCartBadge();
+      renderCart();
+    }
+
+    function updateCartBadge() {
+      document.getElementById('cart-badge').textContent = state.cart.reduce((a, b) => a + b.qty, 0);
+    }
+
+    function updateAddressPreview() {
+      const rua = document.getElementById('ord-rua').value;
+      const num = document.getElementById('ord-num').value;
+      const bairro = document.getElementById('ord-bairro').value;
+      const cep = document.getElementById('ord-cep').value;
+      const comp = document.getElementById('ord-comp').value;
+      const box = document.getElementById('address-preview');
+      if (rua && num) {
+        box.classList.remove('hidden');
+        box.innerHTML = `<strong>Endereço informado:</strong> ${rua}, ${num} - ${bairro} (CEP: ${cep}) ${comp}`;
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items-container');
+      const form = document.getElementById('checkout-form');
+
+      if (state.cart.length === 0) {
+        container.innerHTML = '<p class="py-12 text-center text-sm text-vinhoEscuro/60">Sua sacola está vazia.</p>';
+        form.classList.add('hidden');
+        return;
+      }
+
+      form.classList.remove('hidden');
+      container.innerHTML = state.cart.map(i => `
+        <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-dourado/30">
+          <div>
+            <p class="font-semibold text-sm text-vinhoEscuro">${i.product.name}</p>
+            <p class="text-xs text-vinho font-bold">R$ ${(Number(i.product.price) * i.qty).toFixed(2).replace('.', ',')}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="changeQty('${i.product.id}', -1)" class="px-2 py-0.5 rounded bg-vinho/10 font-bold">-</button>
+            <span class="text-sm font-bold">${i.qty}</span>
+            <button type="button" onclick="changeQty('${i.product.id}', 1)" class="px-2 py-0.5 rounded bg-vinho/10 font-bold">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      const type = document.getElementById('ord-type').value;
+      document.getElementById('address-fields').classList.toggle('hidden', type !== 'entrega');
+
+      const subtotal = state.cart.reduce((acc, i) => acc + Number(i.product.price) * i.qty, 0);
+      const fee = type === 'entrega' ? Number(state.settings.delivery_fee || 0) : 0;
+      const total = subtotal + fee;
+
+      document.getElementById('cart-totals').innerHTML = `
+        <div class="flex justify-between"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2).replace('.', ',')}</span></div>
+        <div class="flex justify-between"><span>Taxa de Entrega</span><span>R$ ${fee.toFixed(2).replace('.', ',')}</span></div>
+        <div class="flex justify-between font-bold text-base text-douradoClaro pt-2 border-t border-dourado/30">
+          <span>Total</span><span>R$ ${total.toFixed(2).replace('.', ',')}</span>
+        </div>
+      `;
+    }
+
+    async function submitOrder(e) {
+      e.preventDefault();
+      const type = document.getElementById('ord-type').value;
+      const address = type === 'entrega' ? {
+        cep: document.getElementById('ord-cep').value,
+        street: document.getElementById('ord-rua').value,
+        number: document.getElementById('ord-num').value,
+        neighborhood: document.getElementById('ord-bairro').value,
+        complement: document.getElementById('ord-comp').value
+      } : null;
+
+      const subtotal = state.cart.reduce((acc, i) => acc + Number(i.product.price) * i.qty, 0);
+      const fee = type === 'entrega' ? Number(state.settings.delivery_fee || 0) : 0;
+
+      try {
+        if (state.user && address) {
+          await addDoc(collection(db, 'addresses'), {
+            user_id: state.user.uid, ...address, created_at: new Date().toISOString()
+          });
+        }
+
+        const orderData = {
+          user_id: state.user?.uid || null,
+          customer_name: document.getElementById('ord-name').value,
+          customer_phone: document.getElementById('ord-phone').value,
+          delivery_type: type,
+          delivery_address: address,
+          payment_method: document.getElementById('ord-payment').value,
+          notes: document.getElementById('ord-notes').value,
+          items: state.cart.map(i => ({ id: i.product.id, name: i.product.name, price: i.product.price, quantity: i.qty })),
+          subtotal, delivery_fee: fee, total: subtotal + fee,
+          status: 'Pedido recebido',
+          created_at: new Date().toISOString()
+        };
+
+        const docRef = await addDoc(collection(db, 'orders'), orderData);
+
+        state.cart = [];
+        updateCartBadge();
+        document.getElementById('checkout-form').classList.add('hidden');
+        document.getElementById('cart-items-container').innerHTML = `
+          <div class="py-10 text-center space-y-4">
+            <p class="text-3xl">✅</p>
+            <h4 class="font-serif text-2xl font-bold text-vinhoEscuro">Pedido Confirmado!</h4>
+            <p class="text-sm">Código: <strong class="text-vinho">#${docRef.id.slice(0, 8).toUpperCase()}</strong></p>
+            ${orderData.payment_method === 'PIX' ? `<div class="p-4 rounded-xl bg-vinho text-creme text-xs"><p class="text-douradoClaro font-bold">Chave PIX:</p><p class="font-mono mt-1 select-all">${state.settings.pix_key}</p></div>` : ''}
+          </div>
+        `;
+      } catch (err) {
+        alert('Erro ao registrar pedido: ' + err.message);
+      }
+    }
+
+    // ÁREA DO CLIENTE
+    async function loadCustomerData() {
+      document.getElementById('customer-email-display').textContent = state.user.email;
+      try {
+        const [ordersSnap, addrsSnap] = await Promise.all([
+          getDocs(query(collection(db, 'orders'), where('user_id', '==', state.user.uid))),
+          getDocs(query(collection(db, 'addresses'), where('user_id', '==', state.user.uid)))
+        ]);
+
+        const orders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const addrs = addrsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        document.getElementById('customer-orders-list').innerHTML = orders.map(o => `
+          <div class="bg-white p-5 rounded-xl border border-dourado/40 space-y-2">
+            <div class="flex justify-between items-center border-b border-dourado/20 pb-2">
+              <span class="font-bold text-sm">Pedido #${o.id.slice(0, 8).toUpperCase()}</span>
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-vinho text-douradoClaro">${o.status}</span>
+            </div>
+            <div class="text-sm">${o.items.map(i => `<p>${i.quantity}x ${i.name}</p>`).join('')}</div>
+            <p class="text-xs font-bold text-vinho">Total: R$ ${Number(o.total).toFixed(2).replace('.', ',')} (${o.payment_method})</p>
+          </div>
+        `).join('') || '<p class="text-sm text-vinhoEscuro/60">Nenhum pedido registrado.</p>';
+
+        document.getElementById('customer-addresses-list').innerHTML = addrs.map(a => `
+          <div class="p-2.5 rounded bg-creme border border-dourado/30">${a.street}, ${a.number} - ${a.neighborhood} (${a.cep})</div>
+        `).join('') || '<p>Nenhum endereço salvo.</p>';
+
+        document.getElementById('customer-store-info').innerHTML = `
+          <h3 class="font-serif text-xl font-bold text-douradoClaro">Migs & Prosa</h3>
+          <p><strong>Endereço:</strong> ${state.settings.address}</p>
+          <p><strong>Horários:</strong> ${state.settings.opening_hours}</p>
+          <p><strong>WhatsApp:</strong> ${state.settings.whatsapp}</p>
+          <p><strong>Chave PIX:</strong> ${state.settings.pix_key}</p>
+        `;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // PAINEL ADMINISTRATIVO DO PROPRIETÁRIO
+    function setAdminTab(t) {
+      ['dashboard', 'pedidos', 'cardapio', 'config'].forEach(tab => {
+        document.getElementById('admin-tab-' + tab).classList.toggle('hidden', tab !== t);
+        document.getElementById('adm-btn-' + tab).className = tab === t
+          ? 'px-4 py-2 rounded-lg bg-vinho border border-dourado text-douradoClaro text-xs font-bold'
+          : 'px-4 py-2 rounded-lg bg-white/5 text-creme text-xs font-bold';
+      });
+    }
+
+    async function loadAdminData() {
+      const [ordersSnap, prodsSnap, catsSnap, cfgSnap] = await Promise.all([
+        getDocs(collection(db, 'orders')),
+        getDocs(collection(db, 'products')),
+        getDocs(collection(db, 'categories')),
+        getDoc(doc(db, 'store_settings', 'config'))
+      ]);
+
+      const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const prods = prodsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const cats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const cfg = cfgSnap.exists() ? cfgSnap.data() : state.settings;
+
+      const revenue = allOrders.filter(o => o.status !== 'Pedido cancelado').reduce((a, b) => a + Number(b.total), 0);
+      const pending = allOrders.filter(o => ['Pedido recebido', 'Pedido confirmado'].includes(o.status)).length;
+      const prep = allOrders.filter(o => o.status === 'Em preparação').length;
+      const deliv = allOrders.filter(o => o.status === 'Saiu para entrega').length;
+      const done = allOrders.filter(o => o.status === 'Pedido concluído').length;
+
+      document.getElementById('admin-metrics').innerHTML = `
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Faturamento</p><p class="text-3xl font-bold text-dourado mt-2">R$ ${revenue.toFixed(2).replace('.', ',')}</p></div>
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Total Pedidos</p><p class="text-3xl font-bold mt-2">${allOrders.length}</p></div>
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Pendentes</p><p class="text-3xl font-bold text-amber-300 mt-2">${pending}</p></div>
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Em Preparação</p><p class="text-3xl font-bold mt-2">${prep}</p></div>
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Em Entrega</p><p class="text-3xl font-bold mt-2">${deliv}</p></div>
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/40"><p class="text-xs uppercase text-douradoClaro">Concluídos</p><p class="text-3xl font-bold text-emerald-300 mt-2">${done}</p></div>
+      `;
+
+      document.getElementById('admin-chart').innerHTML = ORDER_STATUSES.map(st => {
+        const c = allOrders.filter(o => o.status === st).length;
+        const pct = allOrders.length ? Math.round((c / allOrders.length) * 100) : 0;
+        return `
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>${st}</span><span class="text-douradoClaro font-bold">${c} (${pct}%)</span></div>
+            <div class="w-full h-2.5 bg-vinhoEscuro rounded-full overflow-hidden"><div class="h-full bg-dourado" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('admin-orders-list').innerHTML = allOrders.map(o => `
+        <div class="bg-vinho p-6 rounded-2xl border border-dourado/50 space-y-3">
+          <div class="flex flex-wrap justify-between items-center gap-3 border-b border-dourado/20 pb-3">
+            <div>
+              <span class="text-xs font-mono text-dourado">#${o.id.slice(0, 8).toUpperCase()}</span>
+              <h3 class="text-lg font-bold">${o.customer_name} • ${o.customer_phone}</h3>
+              <p class="text-xs text-creme/75">${new Date(o.created_at).toLocaleString('pt-BR')} • ${o.delivery_type.toUpperCase()} • ${o.payment_method}</p>
+            </div>
+            <select onchange="adminUpdateOrder('${o.id}', this.value)" class="px-4 py-2 rounded-lg bg-vinhoEscuro border border-dourado text-douradoClaro text-sm font-bold">
+              ${ORDER_STATUSES.map(st => `<option value="${st}" ${o.status === st ? 'selected' : ''}>${st}</option>`).join('')}
+            </select>
+          </div>
+          ${o.delivery_address ? `<p class="text-xs bg-vinhoEscuro/70 p-3 rounded-lg"><strong>Endereço:</strong> ${o.delivery_address.street}, ${o.delivery_address.number} - ${o.delivery_address.neighborhood} (${o.delivery_address.cep})</p>` : ''}
+          <div class="text-sm">${o.items.map(i => `<p>${i.quantity}x ${i.name} - R$ ${(i.price * i.quantity).toFixed(2).replace('.', ',')}</p>`).join('')}</div>
+          <p class="text-right font-bold text-douradoClaro">Total: R$ ${Number(o.total).toFixed(2).replace('.', ',')}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('new-prod-cat').innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      document.getElementById('admin-products-list').innerHTML = prods.map(p => `
+        <div class="bg-vinho p-4 rounded-xl border border-dourado/30 grid md:grid-cols-12 gap-2 items-center">
+          <input id="pn-${p.id}" value="${p.name}" class="md:col-span-3 p-2 rounded bg-vinhoEscuro border border-dourado/30 text-xs text-creme" />
+          <input id="pd-${p.id}" value="${p.description}" class="md:col-span-4 p-2 rounded bg-vinhoEscuro border border-dourado/30 text-xs text-creme" />
+          <input id="pp-${p.id}" type="number" step="0.01" value="${p.price}" class="md:col-span-2 p-2 rounded bg-vinhoEscuro border border-dourado/30 text-xs text-creme" />
+          <input id="pi-${p.id}" value="${p.image_url}" class="md:col-span-2 p-2 rounded bg-vinhoEscuro border border-dourado/30 text-xs text-creme" />
+          <div class="md:col-span-1 flex gap-1 justify-end">
+            <button onclick="adminSaveProduct('${p.id}')" class="px-2.5 py-2 rounded bg-emerald-700 text-xs font-bold">✓</button>
+            <button onclick="adminDeleteProduct('${p.id}')" class="px-2.5 py-2 rounded bg-red-800 text-xs font-bold">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('cfg-fee').value = cfg.delivery_fee;
+      document.getElementById('cfg-pix').value = cfg.pix_key;
+      document.getElementById('cfg-hours').value = cfg.opening_hours;
+      document.getElementById('cfg-address').value = cfg.address;
+      document.getElementById('cfg-whatsapp').value = cfg.whatsapp;
+      document.getElementById('cfg-instagram').value = cfg.instagram;
+      document.getElementById('cfg-delivery-on').checked = cfg.delivery_enabled;
+      document.getElementById('cfg-card-on').checked = cfg.card_on_delivery_enabled;
+    }
+
+    async function adminUpdateOrder(id, status) {
+      await updateDoc(doc(db, 'orders', id), { status });
+      loadAdminData();
+    }
+
+    async function adminAddCategory(e) {
+      e.preventDefault();
+      await addDoc(collection(db, 'categories'), {
+        name: document.getElementById('new-cat-name').value,
+        section: document.getElementById('new-cat-section').value,
+        sort_order: Date.now()
+      });
+      document.getElementById('new-cat-name').value = '';
+      await loadStoreData();
+      loadAdminData();
+    }
+
+    async function adminAddProduct(e) {
+      e.preventDefault();
+      await addDoc(collection(db, 'products'), {
+        name: document.getElementById('new-prod-name').value,
+        price: parseFloat(document.getElementById('new-prod-price').value),
+        category_id: document.getElementById('new-prod-cat').value,
+        image_url: document.getElementById('new-prod-img').value,
+        description: document.getElementById('new-prod-desc').value,
+        active: true
+      });
+      e.target.reset();
+      await loadStoreData();
+      renderMenu();
+      loadAdminData();
+    }
+
+    async function adminSaveProduct(id) {
+      await updateDoc(doc(db, 'products', id), {
+        name: document.getElementById('pn-' + id).value,
+        description: document.getElementById('pd-' + id).value,
+        price: parseFloat(document.getElementById('pp-' + id).value),
+        image_url: document.getElementById('pi-' + id).value
+      });
+      alert('Produto atualizado!');
+      await loadStoreData();
+      renderMenu();
+    }
+
+    async function adminDeleteProduct(id) {
+      if (!confirm('Remover produto?')) return;
+      await deleteDoc(doc(db, 'products', id));
+      await loadStoreData();
+      renderMenu();
+      loadAdminData();
+    }
+
+    async function adminSaveSettings(e) {
+      e.preventDefault();
+      const settingsData = {
+        delivery_fee: parseFloat(document.getElementById('cfg-fee').value),
+        pix_key: document.getElementById('cfg-pix').value,
+        opening_hours: document.getElementById('cfg-hours').value,
+        address: document.getElementById('cfg-address').value,
+        whatsapp: document.getElementById('cfg-whatsapp').value,
+        instagram: document.getElementById('cfg-instagram').value,
+        delivery_enabled: document.getElementById('cfg-delivery-on').checked,
+        card_on_delivery_enabled: document.getElementById('cfg-card-on').checked
+      };
+      await updateDoc(doc(db, 'store_settings', 'config'), settingsData);
+      alert('Configurações salvas!');
+      await loadStoreData();
+    }
+
+    init();
+  </script>
+</body>
+</html>
