@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migs & Prosa | Café da Manhã & Marmitas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            vinho: '#641B2B',
+            vinhoEscuro: '#3B101B',
+            dourado: '#D4AF37',
+            douradoClaro: '#F1D98A',
+            creme: '#FFF9F0',
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #FFF9F0; color: #3B101B; font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+  </style>
+</head>
+<body class="antialiased selection:bg-dourado selection:text-vinhoEscuro">
+
+  <!-- ==================== CABEÇALHO ==================== -->
+  <header class="sticky top-0 z-40 bg-vinhoEscuro/95 backdrop-blur-md border-b border-dourado/30 text-creme">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      <a href="#inicio" onclick="switchView('store')" class="flex items-center gap-3">
+        <img src="IMG-20261126-WA0000.jpg" alt="Migs & Prosa" class="h-14 w-14 rounded-full object-cover border border-dourado shadow-md" />
+        <div>
+          <span class="font-serif text-2xl font-bold text-douradoClaro tracking-wide block leading-none">Migs & Prosa</span>
+          <span class="text-[10px] tracking-[0.25em] uppercase text-dourado">Café da Manhã • Marmitas</span>
+        </div>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+        <a href="#inicio" onclick="switchView('store')" class="hover:text-douradoClaro transition">Início</a>
+        <a href="#cardapio" onclick="switchView('store')" class="hover:text-douradoClaro transition">Cardápio</a>
+        <a href="#sobre" onclick="switchView('store')" class="hover:text-douradoClaro transition">Sobre</a>
+        <a href="#contato" onclick="switchView('store')" class="hover:text-douradoClaro transition">Contato</a>
+      </nav>
+
+      <div class="flex items-center gap-2.5">
+        <button id="btn-admin-nav" onclick="switchView('admin')" class="hidden items-center gap-1.5 px-3 py-2 rounded-lg bg-dourado text-vinhoEscuro text-xs font-bold hover:bg-douradoClaro transition shadow">
+          ★ Painel do Dono
+        </button>
+
+        <button id="btn-account-nav" onclick="handleAccountClick()" class="px-3.5 py-2 rounded-lg border border-dourado/50 text-douradoClaro text-xs font-semibold hover:bg-vinho transition">
+          Entrar
+        </button>
+
+        <button onclick="toggleCart(true)" class="relative flex items-center gap-2 px-4 py-2.5 rounded-lg bg-vinho border border-dourado text-creme text-sm font-semibold hover:bg-dourado hover:text-vinhoEscuro transition">
+          <span>Sacola</span>
+          <span id="cart-badge" class="bg-dourado text-vinhoEscuro text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== VIEW 1: LOJA PÚBLICA ==================== -->
+  <main id="view-store">
+    <!-- BANNER PRINCIPAL -->
+    <section id="inicio" class="relative bg-vinhoEscuro text-creme overflow-hidden">
+      <div class="absolute inset-0 bg-cover bg-center opacity-35" style="background-image: url('https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=1920&q=80');"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-vinhoEscuro via-vinhoEscuro/85 to-transparent"></div>
+
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 md:py-32 grid md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-6">
+          <div class="inline-block px-4 py-1.5 rounded-full border border-dourado/60 bg-vinho/60 text-douradoClaro text-xs uppercase tracking-widest">
+            Gastronomia Artesanal & Afetiva
+          </div>
+          <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-creme leading-tight">
+            Sabor que acolhe, <span class="text-dourado">qualidade que conquista.</span>
+          </h1>
+          <p class="text-lg text-creme/85 max-w-xl leading-relaxed">
+            Seu café da manhã e sua refeição favorita estão a poucos cliques de você.
+          </p>
+          <div class="flex flex-wrap gap-4 pt-2">
+            <a href="#cardapio" class="px-7 py-3.5 rounded-lg bg-dourado text-vinhoEscuro font-bold text-sm hover:bg-douradoClaro transition shadow-lg">
+              Conhecer cardápio
+            </a>
+            <button onclick="toggleCart(true)" class="px-7 py-3.5 rounded-lg bg-vinho border border-dourado text-creme font-semibold text-sm hover:bg-dourado/20 transition">
+              Fazer meu pedido
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARDÁPIO -->
+    <section id="cardapio" class="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <span class="text-xs uppercase tracking-[0.25em] text-vinho font-semibold">Nosso Cardápio</span>
+        <h2 class="font-serif text-3xl sm:text-4xl font-bold text-vinhoEscuro mt-2">
+          Feito na hora com ingredientes selecionados
+        </h2>
+        <div class="w-24 h-0.5 bg-dourado mx-auto mt-4"></div>
+      </div>
+
+      <!-- ABAS PRINCIPAIS -->
+      <div class="flex justify-center gap-4 mb-8">
+        <button id="tab-cafe" onclick="setSection('cafe')" class="px-6 py-3 rounded-xl font-semibold text-sm transition border bg-vinho text-douradoClaro border-dourado shadow-md">
+          ☕ Cafés da Manhã
+        </button>
+        <button id="tab-marmita" onclick="setSection('marmita')" class="px-6 py-3 rounded-xl font-semibold text-sm transition border bg-white text-vinhoEscuro border-dourado/40 hover:border-vinho">
+          🍲 Marmitas
+        </button>
+      </div>
+
+      <!-- SUBCATEGORIAS -->
+      <div id="subcategories-bar" class="flex flex-wrap justify-center gap-2 mb-12"></div>
+
+      <!-- GRID DE PRODUTOS -->
+      <div id="products-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <p class="col-span-full text-center text-sm text-vinhoEscuro/60">Carregando cardápio...</p>
+      </div>
+    </section>
+
+    <!-- SEÇÃO SOBRE -->
+    <section id="sobre" class="bg-vinho text-creme py-16 border-y border-dourado/40">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4">
+        <h2 class="font-serif text-3xl font-bold text-douradoClaro">Tradição, Carinho e Boa Prosa</h2>
+        <p class="text-creme/90 leading-relaxed">
+          No Migs & Prosa, cada café é passado com cuidado e cada marmita é preparada diariamente com tempero caseiro fresco, levando o acolhimento da boa mesa até você.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== VIEW 2: ÁREA DO CLIENTE ==================== -->
+  <section id="view-customer" class="hidden max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-10 min-h-[70vh]">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-dourado/40 pb-4">
+      <div>
+        <h1 class="font-serif text-3xl font-bold text-vinhoEscuro">Minha Conta</h1>
+        <p id="customer-email-display" class="text-xs text-vinhoEscuro/70"></p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="switchView('store')" class="px-4 py-2 rounded-lg border border-vinho text-vinho text-xs font-bold">← Voltar ao Cardápio</button>
+        <button onclick="logout()" class="px-4 py-2 rounded-lg bg-vinhoEscuro text-douradoClaro text-xs font-bold">Sair</button>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="font-serif text-2xl font-bold text-vinhoEscuro mb-4">Meus Pedidos & Acompanhamento</h2>
+      <div id="customer-orders-list" class="space-y-4"></div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-white p-6 rounded-2xl border border-dourado/40 space-y-3">
+        <h3 class="font-serif text-xl font-bold text-vinhoEscuro">Endereços Salvos</h3>
+        <div id="customer-addresses-list" class="space-y-2 text-xs"></div>
+      </div>
+      <div id="customer-store-info" class="bg-vinho text-creme p-6 rounded-2xl border border-dourado space-y-2 text-sm"></div>
+    </div>
+  </section>
+
+  <!-- ==================== VIEW 3: PAINEL EXCLUSIVO DO PROPRIETÁRIO ==================== -->
+  <section id="view-admin" class="hidden min-h-screen bg-vinhoEscuro text-creme">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-dourado/30">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-dourado">Acesso Restrito • Proprietário</span>
+          <h1 class="font-serif text-3xl font-bold text-douradoClaro">Painel Administrativo Migs & Prosa</h1>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="setAdminTab('dashboard')" id="adm-btn-dashboard" class="px-4 py-2 rounded-lg bg-vinho border border-dourado text-douradoClaro text-xs font-bold">Dashboard</button>
+          <button onclick="setAdminTab('pedidos')" id="adm-btn-pedidos" class="px-4 py-2 rounded-lg bg-white/5 text-creme text-xs font-bold">Pedidos</button>
+          <button onclick="setAdminTab('cardapio')" id="adm-btn-cardapio" class="px-4 py-2 rounded-lg bg-white/5 text-creme text-xs font-bold">Cardápio</button>
+          <button onclick="setAdminTab('config')" id="adm-btn-config" class="px-4 py-2 rounded-lg bg-white/5 text-creme text-xs font-bold">Configurações</button>
+          <button onclick="switchView('store')" class="px-4 py-2 rounded-lg border border-dourado/40 text-xs">Ver Loja</button>
+          <button onclick="logout()" class="px-4 py-2 rounded-lg bg-red-900 text-white text-xs font-bold">Sair</button>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB: DASHBOARD -->
+      <div id="admin-tab-dashboard" class="py-8 space-y-8">
+        <div id="admin-metrics" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        <div class="bg-vinho/60 p-6 rounded-2xl border border-dourado/40 space-y-4">
+          <h2 class="font-serif text-xl font-bold text-douradoClaro">Gráfico Operacional de Pedidos</h2>
+          <div id="admin-chart" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- ADMIN TAB: PEDIDOS -->
+      <div id="admin-tab-pedidos" class="hidden py-8 space-y-4">
+        <div class="flex justify-between items-center">
+          <h2 class="font-serif text-2xl font-bold text-douradoClaro">Pedidos Recebidos</h2>
+          <button onclick="loadAdminData()" class="px-4 py-2 rounded-lg bg-dourado text-vinhoEscuro text-xs font-bold">Atualizar Lista</button>
+        </div>
+        <div id="admin-orders-list" class="space-y-4"></div>
+      </div>
+
+      <!-- ADMIN TAB: CARDÁPIO -->
+      <div id="admin-tab-cardapio" class="hidden py-8 space-y-8">
+        <form onsubmit="adminAddCategory(event)" class="bg-vinho p-6 rounded-2xl border border-dourado/40 flex flex-wrap gap-3 items-end">
+          <div>
+            <label class="block text-xs mb-1">Nova Categoria</label>
+            <input id="new-cat-name" required placeholder="Ex: Sucos Naturais" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Seção</label>
+            <select id="new-cat-section" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme">
+              <option value="cafe">Cafés da Manhã</option>
+              <option value="marmita">Marmitas</option>
+            </select>
+          </div>
+          <button type="submit" class="px-5 py-2.5 rounded bg-dourado text-vinhoEscuro font-bold text-sm">Adicionar Categoria</button>
+        </form>
+
+        <form onsubmit="adminAddProduct(event)" class="bg-vinho p-6 rounded-2xl border border-dourado/40 space-y-4">
+          <h3 class="font-serif text-xl font-bold text-douradoClaro">Cadastrar Novo Produto</h3>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <input id="new-prod-name" required placeholder="Nome do produto" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            <input id="new-prod-price" required type="number" step="0.01" placeholder="Preço (Ex: 14.90)" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            <select id="new-prod-cat" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme"></select>
+            <input id="new-prod-img" required placeholder="URL da imagem" class="p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+          </div>
+          <input id="new-prod-desc" required placeholder="Descrição completa do item" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+          <button type="submit" class="px-6 py-2.5 rounded bg-dourado text-vinhoEscuro font-bold text-sm">+ Salvar Produto</button>
+        </form>
+
+        <div id="admin-products-list" class="space-y-3"></div>
+      </div>
+
+      <!-- ADMIN TAB: CONFIGURAÇÕES -->
+      <div id="admin-tab-config" class="hidden py-8">
+        <form onsubmit="adminSaveSettings(event)" class="max-w-2xl bg-vinho p-8 rounded-2xl border border-dourado/40 space-y-4">
+          <h2 class="font-serif text-2xl font-bold text-douradoClaro">Configurações do Estabelecimento</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs mb-1">Taxa de Entrega (R$)</label>
+              <input id="cfg-fee" type="number" step="0.01" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            </div>
+            <div>
+              <label class="block text-xs mb-1">Chave PIX Oficial</label>
+              <input id="cfg-pix" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Horários de Funcionamento</label>
+            <input id="cfg-hours" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Endereço Completo</label>
+            <input id="cfg-address" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs mb-1">WhatsApp</label>
+              <input id="cfg-whatsapp" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            </div>
+            <div>
+              <label class="block text-xs mb-1">Instagram</label>
+              <input id="cfg-instagram" class="w-full p-2.5 rounded bg-vinhoEscuro border border-dourado/40 text-sm text-creme" />
+            </div>
+          </div>
+          <div class="space-y-2 pt-2 text-sm">
+            <label class="flex items-center gap-2"><input id="cfg-delivery-on" type="checkbox" /> Ativar entregas (Delivery)</label>
+            <label class="flex items-center gap-2"><input id="cfg-card-on" type="checkbox" /> Aceitar Cartão na entrega</label>
+          </div>
+          <button type="submit" class="px-6 py-3 rounded-xl bg-dourado text-vinhoEscuro font-bold text-sm">Salvar Configurações</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== RODAPÉ ==================== -->
+  <footer id="contato" class="bg-vinhoEscuro text-creme pt-16 pb-8 border-t border-dourado/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid md:grid-cols-4 gap-10 pb-12 border-b border-dourado/20">
+      <div class="space-y-4">
+        <img src="IMG-20261126-WA0000.jpg" alt="Migs & Prosa" class="h-20 w-20 rounded-full border border-dourado object-cover" />
+        <p class="text-sm text-creme/75">Café da manhã artesanal e marmitas preparadas diariamente com excelência.</p>
+      </div>
+      <div class="space-y-3 text-sm">
+        <h4 class="font-serif text-lg text-douradoClaro font-semibold">Links Rápidos</h4>
+        <ul class="space-y-2 text-creme/80">
+          <li><a href="#inicio" onclick="switchView('store')" class="hover:text-dourado">Início</a></li>
+          <li><a href="#cardapio" onclick="switchView('store')" class="hover:text-dourado">Cardápio</a></li>
+          <li><button onclick="handleAccountClick()" class="hover:text-dourado">Meus Pedidos</button></li>
+        </ul>
+      </div>
+      <div class="space-y-3 text-sm">
+        <h4 class="font-serif text-lg text-douradoClaro font-semibold">Funcionamento</h4>
+        <p id="footer-hours" class="text-creme/80">Seg a Sáb: 06h30 às 15h00</p>
+        <p id="footer-address" class="text-creme/80">Rua das Acácias, 240 - Centro</p>
+      </div>
+      <div class="space-y-3 text-sm">
+        <h4 class="font-serif text-lg text-douradoClaro font-semibold">Contato</h4>
+        <p id="footer-whatsapp" class="text-creme/80">WhatsApp: (11) 99999-9999</p>
+        <p id="footer-instagram" class="text-creme/80">Instagram: @migseprosa</p>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-6 text-center text-xs text-creme/60">
+      © 2026 Migs & Prosa. Todos os direitos reservados.
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL DE LOGIN / CADASTRO ==================== -->
+  <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+    <div class="bg-creme max-w-md w-full rounded-2xl p-8 border-2 border-dourado shadow-2xl space-y-5 relative">
+      <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-vinhoEscuro font-bold text-lg">✕</button>
+      <div class="text-center space-y-2">
+        <img src="IMG-20261126-WA0000.jpg" alt="Migs & Prosa" class="w-16 h-16 rounded-full mx-auto border border-dourado object-cover" />
+        <h2 id="auth-title" class="font-serif text-2xl font-bold text-vinhoEscuro">Entrar na Conta</h2>
+      </div>
+      <form onsubmit="submitAuth(event)" class="space-y-3">
+        <input id="auth-name" placeholder="Seu nome completo" class="hidden w-full p-3 rounded-lg border border-dourado/50 bg-white text-sm" />
+        <input id="auth-email" type="email" required placeholder="Seu e-mail" class="w-full p-3 rounded-lg border border-dourado/50 bg-white text-sm" />
+        <input id="auth-pass" type="password" required minlength="6" placeholder="Sua senha (mín. 6 caracteres)" class="w-full p-3 rounded-lg border border-dourado/50 bg-white text-sm" />
+        <button type="submit" class="w-full py-3 rounded-lg bg-vinho text-douradoClaro font-bold text-sm border border-dourado hover:bg-vinhoEscuro transition">
+          Confirmar
+        </button>
+      </form>
+      <p class="text-center text-xs">
+        <button onclick="toggleAuthMode()" id="auth-toggle-text" class="text-vinho font-bold hover:underline">
+          Não tem conta? Cadastre-se agora
+        </button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== DRAWER DO CARRINHO & CHECKOUT ==================== -->
+  <div id="cart-drawer" class="hidden fixed inset-0 z-50 bg-black/60 flex justify-end">
+    <div class="bg-creme w-full max-w-lg h-full overflow-y-auto p-6 shadow-2xl flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between pb-4 
